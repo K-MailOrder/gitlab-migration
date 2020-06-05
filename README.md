@@ -20,9 +20,9 @@ Script to migrate Gitlab groups and their projects from one Gitlab instance to a
 
 ## Limitations ##
 * Tested with Gitlab 13.0
-* Currently only Community Edition features are supported to be exportable. See [list of supported features](#supported-features) below for details. This doesn't limit the script to Community Edition Gitlab instances though. It can be used with any of Community, Enterprise or Gitlab.com SaaS instances as source and target.
+* Currently only Community Edition features are supported. See [list of supported features](#supported-features) below for details. This doesn't limit the script to Community Edition Gitlab instances though. It can be used with any of Community, Enterprise or Gitlab.com SaaS instances as source and target.
 * The target group path already has to exist
-* Max. 100 Subgroups, Projects, Variables, Hooks, Badges etc. will be migrated as no API pagination is implemented
+* Max. 100 Subgroups, Projects, Variables, Hooks, Badges per parent entity will be migrated as no API pagination is implemented
 * If you hit an error during the migration, you might have to wait several minutes before resuming, as Gitlab has some pretty tight rate limiting restrictions for project exports: https://docs.gitlab.com/ee/user/project/settings/import_export.html#rate-limits
 
 ## Supported Features ##
