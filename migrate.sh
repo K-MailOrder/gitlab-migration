@@ -318,11 +318,19 @@ function migrateVariables ()  {
   local variableUrlSourceGitlab="${baseUrlSourceGitlabApi}/${type}/${entityEncoded}/variables?per_page=100"
   local variableUrlTargetGitlab="${baseUrlTargetGitlabApi}/${type}/${entityEncodedTargetGitlab}/variables"
 
-  local -a variables
-  mapfile -t variables < <(curl -sS --header "${authHeaderSourceGitlab}" "${variableUrlSourceGitlab}" | jq -rc '.[]')
-  #echo "${variables[@]}"
-  local variable
-  for variable in "${variables[@]}"; do
+  local response=$(curl -sS -w "\n%{http_code}" --header "${authHeaderSourceGitlab}" "${variableUrlSourceGitlab}")
+  processCurlHttpResponse "$response"
+  if [[ "${httpResponse['status']}" == "403" ]]; then
+    echo "Skipping variables as CI/CD pipelines are disabled"
+    return
+  fi
+
+  if [[ "${httpResponse['status']}" == "200" ]]; then
+    local -a variables
+    mapfile -t variables < <(echo -n "${httpResponse['body']}" | jq -rc '.[]')
+    #echo "${variables[@]}"
+    local variable
+    for variable in "${variables[@]}"; do
     local varKey=$(jq -r '.key' <<< "${variable}")
     local status=$(curl -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${variableUrlTargetGitlab}/${varKey}")
     if [[ "$status" == "200" ]]; then
@@ -337,8 +345,12 @@ function migrateVariables ()  {
       fi
     fi
     echo -n "."
-  done
-  echo " Done"
+    done
+    echo " Done"
+  else
+    echo "Error retrieving variables. Response: ${httpResponse['status']} - ${httpResponse['body']}"
+    exit 1;
+  fi
 }
 
 function migrateProjectVariables() {
@@ -412,6 +424,17 @@ function migrateBadges ()  {
     echo -n "."
   done
   echo " Done"
+}
+
+declare -A httpResponse
+# the Curl command call has to be configured to append the status code in a newline to the response e.g. curl -s -w "\n%{http_code}" ...
+function processCurlHttpResponse() {
+    local curlResponse=$1
+
+    httpResponse['status']=$(tail -n1 <<< "$curlResponse")
+    httpResponse['body']=$(sed '$ d' <<< "$curlResponse")
+#    echo "Status: ${httpResponse['status']}"
+#    echo "Body: ${httpResponse['body']}"
 }
 
 migrateGroup "${SOURCE_PATH}"
