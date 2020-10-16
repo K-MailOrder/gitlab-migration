@@ -1,6 +1,10 @@
 # Gitlab Migration
 Script to migrate Gitlab groups and their projects from one Gitlab instance to another. 
 
+## Requirements
+* Bash (4.0 or newer)
+* jq
+
 ## Usage ## 
 * Create local file `.secrets` and add a [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) for the source Gitlab instance in the first line and a Personal Access Token for the target Gitlab instance in the second line. Both tokens need the `api` scope. Example:
     ```
@@ -22,7 +26,7 @@ Script to migrate Gitlab groups and their projects from one Gitlab instance to a
 * Tested with Gitlab 13.0
 * Currently only Community Edition features are supported. See [list of supported features](#supported-features) below for details. This doesn't limit the script to Community Edition Gitlab instances though. It can be used with any of Community, Enterprise or Gitlab.com SaaS instances as source and target.
 * The target group path already has to exist
-* Max. 100 Subgroups, Projects, Variables, Hooks, Badges per parent entity will be migrated as no API pagination is implemented
+* Max. 100 Subgroups, Variables, Hooks, Badges per parent entity will be migrated as no API pagination is implemented
 * If you hit an error during the migration, you might have to wait several minutes before resuming, as Gitlab has some pretty tight rate limiting restrictions for project exports: https://docs.gitlab.com/ee/user/project/settings/import_export.html#rate-limits
 
 ## Supported Features ##
@@ -33,13 +37,14 @@ You can always change the settings back after the migration manually or edit the
   * `request_access_enabled=false`
   * `require_two_factor_authentication=true`
   * `share_with_group_lock=true`
-* Group CI variables
-* Group badges
 * Project Export Package. See [Gitlab Import/Export documentation](https://docs.gitlab.com/ee/user/project/settings/import_export.html#exported-contents) for details
-* Project CI variables
-* Project webhooks
-* Add link to new location in source project description
-* Optional: Archive source projects after migration
+* Optional:
+  * Group CI variables
+  * Group badges
+  * Project CI variables
+  * Project webhooks
+  * Add link to new location in source project description
+  * Archive source projects after migration
 
 # License # 
 Copyright (c) 2020 K - Mail Order GmbH & Co. KG
