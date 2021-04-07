@@ -21,6 +21,12 @@ printf "Migrate badges? (yes/no): "
 read -r MIGRATE_BADGES
 printf "Migrate hooks? (yes/no): "
 read -r MIGRATE_HOOKS
+printf "Apply user mapping? (yes/no): "
+read -r USER_MAPPING
+if [[ "$USER_MAPPING" == "yes"  ]]; then
+    printf "User mapping file: "
+    read -r USER_MAPPING_FILE
+fi
 #SOURCE_PATH=""
 #TARGET_PATH=""
 #ARCHIVE_AFTER_MIGRATION="no"
@@ -30,6 +36,8 @@ read -r MIGRATE_HOOKS
 #MIGRATE_PROJECT_VARIABLES="no"
 #MIGRATE_BADGES="no"
 #MIGRATE_HOOKS="no"
+#USER_MAPPING="no"
+#USER_MAPPING_FILE="user-mapping.txt"
 CURL_PARAMS=""
 
 unset -v sourceGitlabPrivateAccessToken targetGitlabPrivateAccessToken
@@ -288,6 +296,11 @@ function migrateProject() {
         echo " Done ${exportStatus[1]}"
         local fileName
         fileName=$(downloadFile "${exportStatus[1]}")
+
+        if [[ "$USER_MAPPING" == "yes"  ]]; then
+            modifyUserMapping "${USER_MAPPING_FILE}" "${fileName}"
+        fi
+
         importProject "${project}" "${fileName}"
         break
       fi
@@ -312,6 +325,31 @@ function downloadFile () {
   local tempPath="tmp.tar.gz"
   curl "${CURL_PARAMS}" -sS -o "$tempPath" --header "$authHeaderSourceGitlab" "$downloadUrl"
   echo "$tempPath"
+}
+
+function modifyUserMapping () {
+  local userMappingFile=$1
+  local archiveFile=$2
+  local workDir="work"
+
+  mapfile -t userMap < ${userMappingFile}
+
+  mkdir -p ${workDir}
+  tar -C ${workDir} -xzf "$archiveFile"
+
+  projectMembersFile=${workDir}/tree/project/project_members.ndjson
+  tmpFile="$(basename ${projectMembersFile}).tmp"
+  
+  for item in "${userMap[@]}"; do
+      read -r search replace <<< "$item"
+      jq -c --arg search ${search} --arg replace ${replace} \
+          '. | if (.user.email | test($search; "i")) then .user.email |= $replace else . end' \
+          ${projectMembersFile} > ${tmpFile} && \
+          mv ${tmpFile} ${projectMembersFile}
+  done
+
+  tar -C ${workDir} -czf "${archiveFile}" .
+  rm -rf ${workDir}
 }
 
 function importProject () {
