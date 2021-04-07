@@ -349,6 +349,7 @@ function modifyUserMapping () {
   done
 
   tar -C ${workDir} -czf "${archiveFile}" .
+  rm -rf ${workDir}
 }
 
 function importProject () {
