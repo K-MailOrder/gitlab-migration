@@ -46,6 +46,19 @@ You can always change the settings back after the migration manually or edit the
   * Add link to new location in source project description
   * Archive source projects after migration
 
+## User mapping ##
+
+Gitlab use email to match users between instances. If the username are not the same between instances but emails are the same, then all user associations are preserved. However, if users email changed, associations are lost after import. You can fix this issue by supplying a user mapping file to make the correspondance.
+
+First, create a `user-mapping.txt` file containing the old and new email address, one record per line, like this:
+
+```
+alice@example.com alice.foo@example.com
+bob@example.com bob.bar@example.com
+```
+
+To enable user mapping, set the variables `USER_MAPPING=true` and `USER_MAPPING_FILE=user-mapping.txt`. After downloading the export archive, the file `project_members.ndjson` inside it is modified with the new emails. The case is non-sensitive. The importation proceeds as usual.
+
 # License # 
 Copyright (c) 2020 K - Mail Order GmbH & Co. KG
 
