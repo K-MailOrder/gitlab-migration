@@ -3,24 +3,42 @@ set -euo pipefail
 
 SOURCE_GITLAB=${SOURCE_GITLAB:=git.mycpompany.de}
 TARGET_GITLAB=${TARGET_GITLAB:=gitlab.com}
-printf "Enter source group path at ${SOURCE_GITLAB} (e.g. project/team): "
-read -r SOURCE_PATH
-printf "Enter target group path at ${TARGET_GITLAB} (e.g. mycompany/project/team): "
-read -r TARGET_PATH
-printf "Archive original projects at ${SOURCE_GITLAB} after migration? (yes/no): "
-read -r ARCHIVE_AFTER_MIGRATION
-printf "Add description to original projects at ${SOURCE_GITLAB} after migration? (yes/no): "
-read -r ADD_DESCRIPTION
-printf "Migrate archived projects? (yes/no): "
-read -r MIGRATE_ARCHIVED_PROJECTS
-printf "Migrate group variables? (yes/no): "
-read -r MIGRATE_GROUP_VARIABLES
-printf "Migrate project variables? (yes/no): "
-read -r MIGRATE_PROJECT_VARIABLES
-printf "Migrate badges? (yes/no): "
-read -r MIGRATE_BADGES
-printf "Migrate hooks? (yes/no): "
-read -r MIGRATE_HOOKS
+if [ -z ${SOURCE_PATH+x} ]; then
+	printf "Enter source group path at ${SOURCE_GITLAB} (e.g. project/team): "
+	read -r SOURCE_PATH
+fi
+if [ -z ${TARGET_PATH+x} ]; then
+	printf "Enter target group path at ${TARGET_GITLAB} (e.g. mycompany/project/team): "
+	read -r TARGET_PATH
+fi
+if [ -z ${ARCHIVE_AFTER_MIGRATION+x} ]; then
+	printf "Archive original projects at ${SOURCE_GITLAB} after migration? (yes/no): "
+	read -r ARCHIVE_AFTER_MIGRATION
+fi
+if [ -z ${ADD_DESCRIPTION+x} ]; then
+	printf "Add description to original projects at ${SOURCE_GITLAB} after migration? (yes/no): "
+	read -r ADD_DESCRIPTION
+fi
+if [ -z ${MIGRATE_ARCHIVED_PROJECTS+x} ]; then
+	printf "Migrate archived projects? (yes/no): "
+	read -r MIGRATE_ARCHIVED_PROJECTS
+fi
+if [ -z ${MIGRATE_GROUP_VARIABLES+x} ]; then
+	printf "Migrate group variables? (yes/no): "
+	read -r MIGRATE_GROUP_VARIABLES
+fi
+if [ -z ${MIGRATE_PROJECT_VARIABLES+x} ]; then
+	printf "Migrate project variables? (yes/no): "
+	read -r MIGRATE_PROJECT_VARIABLES
+fi
+if [ -z ${MIGRATE_BADGES+x} ]; then
+	printf "Migrate badges? (yes/no): "
+	read -r MIGRATE_BADGES
+fi
+if [ -z ${MIGRATE_HOOKS+x} ]; then
+	printf "Migrate hooks? (yes/no): "
+	read -r MIGRATE_HOOKS
+fi
 #SOURCE_PATH=""
 #TARGET_PATH=""
 #ARCHIVE_AFTER_MIGRATION="no"
