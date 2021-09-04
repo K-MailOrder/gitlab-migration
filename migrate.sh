@@ -123,7 +123,21 @@ function migrateGroup() {
   fi
 
   local -a allProjects=("${projects[@]}" "${archivedProjects[@]}")
-  migrateProjects "${allProjects[@]}"
+  local -a allProjectsFiltered
+
+  # NOTE: Gitlab might return projects outside the source group specified.
+  # These projects seems to be related to the user that does the migration. The
+  # API doesn't seems to have an option to exclude these projects, so we filter
+  # them here, making sure that the prefix matches the source path.
+  for project in "${allProjects[@]}"; do
+    if [[ "${project}" =~ ^${SOURCE_PATH} ]]; then
+      allProjectsFiltered+=(${project})
+    else
+      echo "Skipping project outside group: ${project}"
+    fi
+  done
+
+  migrateProjects "${allProjectsFiltered[@]}"
 
   # https://docs.gitlab.com/ee/api/groups.html#list-a-groups-subgroups
   # TODO do we need to follow paging or ist it safe to assume that no group has more than 100 subgroups?
