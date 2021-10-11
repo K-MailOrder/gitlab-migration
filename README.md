@@ -3,10 +3,11 @@ Script to migrate Gitlab groups and their projects from one Gitlab instance to a
 
 ## Requirements
 * Bash (4.0 or newer)
-* jq
+* jq (1.6)
+* curl (7.68.0 tested)
 
 ## Usage ## 
-* Create local file `.secrets` and add a [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) for the source Gitlab instance in the first line and a Personal Access Token for the target Gitlab instance in the second line. Both tokens need the `api` scope. Example:
+* Create local file `.secrets` and add a [Personal Access Token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html) for the source Gitlab instance in the first line and a Personal Access Token for the target Gitlab instance in the second line. Also add a newline (LF) to the end. Both tokens need the `api` scope. Example:
     ```
   $ cat .secrets
   dskjfdskjfr7987dfkds
@@ -23,7 +24,7 @@ Script to migrate Gitlab groups and their projects from one Gitlab instance to a
   ```
 
 ## Limitations ##
-* Tested with Gitlab 13.0
+* Tested with Gitlab 13.0 / 14.0
 * Currently only Community Edition features are supported. See [list of supported features](#supported-features) below for details. This doesn't limit the script to Community Edition Gitlab instances though. It can be used with any of Community, Enterprise or Gitlab.com SaaS instances as source and target.
 * The target group path already has to exist
 * Max. 100 Subgroups, Variables, Hooks, Badges per parent entity will be migrated as no API pagination is implemented
