@@ -323,8 +323,27 @@ function migrateProject() {
         importProject "${project}" "${fileName}"
         break
       fi
-      echo -n "."
-      sleep 5
+      if [[ "${exportStatus[0]}" == "none" ]]; then
+        echo -n " None"
+        break
+      fi
+      if [[ "${exportStatus[0]}" == "queued" ]]; then
+        echo -n "."
+        sleep 5
+        continue
+      fi
+      if [[ "${exportStatus[0]}" == "started" ]]; then
+        echo -n "."
+        sleep 5
+        continue
+      fi
+      if [[ "${exportStatus[0]}" == "regeneration_in_progress" ]]; then
+        echo -n "."
+        sleep 5
+        continue
+      fi
+      echo ${exportStatus[0]}
+      break
     done
   fi
 }
@@ -374,6 +393,10 @@ function importProject () {
     importStatus=$(curl ${CURL_PARAMS} -sS --header "${authHeaderTargetGitlab}" "${importStatusUrl}" | jq -r '.import_status')
     if [[ "${importStatus}" == "finished" ]]; then
       echo -n " Done"
+      break
+    fi
+    if [[ "${importStatus}" == "none" ]]; then
+      echo -n " None"
       break
     fi
     echo -n "."
