@@ -399,6 +399,10 @@ function importProject () {
       echo -n " None"
       break
     fi
+    if [[ "${importStatus}" == "failed" ]]; then
+      echo -n " Failed to import the project"
+      exit 1
+    fi
     echo -n "."
     sleep 5
   done
