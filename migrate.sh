@@ -80,12 +80,12 @@ function getObjects() {
 
   local headerUrl
   local pages
-  headerUrl=$(curl "${CURL_PARAMS}" -sS --head --header "${authHeaderSourceGitlab}" "${groupProjectsUrl}${type}")
+  headerUrl=$(curl ${CURL_PARAMS} -sS --head --header "${authHeaderSourceGitlab}" "${groupProjectsUrl}${type}")
   pages=$(grep -oP '(?<=x-total-pages: ).*' <<< "${headerUrl}" | tr -d '\r')
 
   for ((i=1; i<="${pages}"; i++)); do
     local -a objects
-    mapfile -t objects < <(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${groupProjectsUrl}${type}&page=${i}" | jq -r '.[].path_with_namespace')
+    mapfile -t objects < <(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${groupProjectsUrl}${type}&page=${i}" | jq -r '.[].path_with_namespace')
     local object
     for object in "${objects[@]}"; do
       echo "${object}"
@@ -142,7 +142,7 @@ function migrateGroup() {
   # https://docs.gitlab.com/ee/api/groups.html#list-a-groups-subgroups
   # TODO do we need to follow paging or ist it safe to assume that no group has more than 100 subgroups?
   local -a subGroups
-  mapfile -t subGroups < <(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${groupsUrl}/subgroups?per_page=100" | jq -r --arg gp "${groupPath}" '$gp + "/" + .[].path')
+  mapfile -t subGroups < <(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${groupsUrl}/subgroups?per_page=100" | jq -r --arg gp "${groupPath}" '$gp + "/" + .[].path')
   for subGroup in "${subGroups[@]}"; do
     createGroup "${subGroup}"
     migrateGroup "${subGroup}"
@@ -160,20 +160,20 @@ function createGroup() {
   local groupUrlTargetGitlab="${baseUrlTargetGitlabApi}/groups/${groupPathTargetGitlabEncoded}"
 
   local status
-  status=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${groupUrlTargetGitlab}")
+  status=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${groupUrlTargetGitlab}")
   if [[ "$status" == "404" ]]; then
     echo -n -e "Creating subgroup '${groupPath}: "
 
     local parentId parentGroupPathTargetGitlab parentGroupPathEncodedTargetGitlab
     parentGroupPathTargetGitlab=$(dirname "${groupPathTargetGitlab}")
     parentGroupPathEncodedTargetGitlab=$(urlencode "${parentGroupPathTargetGitlab}")
-    parentId=$(curl "${CURL_PARAMS}" -sS --header "${authHeaderTargetGitlab}" "${baseUrlTargetGitlabApi}/groups/${parentGroupPathEncodedTargetGitlab}" | jq -r '.id')
+    parentId=$(curl ${CURL_PARAMS} -sS --header "${authHeaderTargetGitlab}" "${baseUrlTargetGitlabApi}/groups/${parentGroupPathEncodedTargetGitlab}" | jq -r '.id')
 
     local groupObject
-    groupObject=$(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${groupUrl}" | jq --arg pid "${parentId}" -rc 'del(.id, .web_url, .full_name, .full_path, .runners_token, .parent_id) | .visibility="private" |.request_access_enabled=false | .require_two_factor_authentication=true | .share_with_group_lock=true | .parent_id=$pid | del(.full_path)')
+    groupObject=$(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${groupUrl}" | jq --arg pid "${parentId}" -rc 'del(.id, .web_url, .full_name, .full_path, .runners_token, .parent_id) | .visibility="private" |.request_access_enabled=false | .require_two_factor_authentication=true | .share_with_group_lock=true | .parent_id=$pid | del(.full_path)')
 
     local createResponse createMessage createStatus
-    createResponse=$(curl "${CURL_PARAMS}" -sS -w "\n%{http_code}\n" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"${groupObject}" "${baseUrlTargetGitlabApi}/groups")
+    createResponse=$(curl ${CURL_PARAMS} -sS -w "\n%{http_code}\n" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"${groupObject}" "${baseUrlTargetGitlabApi}/groups")
     { IFS= read -r createMessage && IFS= read -r createStatus; } <<< "${createResponse}"
     if [[ "${createStatus}" != "201" ]]; then
       echo "Error creating ${TARGET_GITLAB} group. Status code: ${createStatus}. Message: ${createMessage}"
@@ -240,13 +240,13 @@ function addMigrationInfoToSourceProjectDescription() {
     local migratedProjectUrl="${baseUrlTargetGitlab}/${migratedProject}"
 
     local projectDescription
-    projectDescription=$(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${projectUrl}" | jq -r '.description')
+    projectDescription=$(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${projectUrl}" | jq -r '.description')
     local updatedProjectDescription=":warning: Project moved to ${migratedProjectUrl}
 ${projectDescription}"
 
     echo -n -e "\t\tUpdate project description: "
     local updateDescResponse updateDescStatus updateDescMessage
-    updateDescResponse=$(curl "${CURL_PARAMS}" -sS -w "\n%{http_code}\n" -X PUT --header "${authHeaderSourceGitlab}" "${projectUrl}" --form "description=${updatedProjectDescription}")
+    updateDescResponse=$(curl ${CURL_PARAMS} -sS -w "\n%{http_code}\n" -X PUT --header "${authHeaderSourceGitlab}" "${projectUrl}" --form "description=${updatedProjectDescription}")
     { IFS= read -r updateDescMessage && IFS= read -r updateDescStatus; } <<< "${updateDescResponse}"
     if [[ "${updateDescStatus}" != "200" ]]; then
       echo "Error updating project description. Status code: ${updateDescStatus}. Message: ${updateDescResponse}"
@@ -287,7 +287,7 @@ function archiveProject() {
     local url="${baseUrl}/projects/${projectEncoded}/${unarchive}archive"
 
     local archiveResponse archiveStatus archiveMessage
-    archiveResponse=$(curl "${CURL_PARAMS}" -sS -w "\n%{http_code}\n" -X POST --header "${authHeader}" "${url}")
+    archiveResponse=$(curl ${CURL_PARAMS} -sS -w "\n%{http_code}\n" -X POST --header "${authHeader}" "${url}")
     { IFS= read -r archiveMessage && IFS= read -r archiveStatus; } <<< "${archiveResponse}"
 
     if [[ "${archiveStatus}" != "201" ]]; then
@@ -308,14 +308,14 @@ function migrateProject() {
     echo "${projectExportUrl}"
   else
     local export
-    export=$(curl "${CURL_PARAMS}" -sS --request POST --header "${authHeaderSourceGitlab}" "${projectExportUrl}" | jq -r '.message')
+    export=$(curl ${CURL_PARAMS} -sS --request POST --header "${authHeaderSourceGitlab}" "${projectExportUrl}" | jq -r '.message')
     if [[ "$export" != "202 Accepted" ]]; then
       echo "Error triggering export: $export"
       exit 1;
     fi
     while true; do
       local -a exportStatus
-      mapfile -t exportStatus < <(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${projectExportUrl}" | jq -r '.export_status, ._links.api_url')
+      mapfile -t exportStatus < <(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${projectExportUrl}" | jq -r '.export_status, ._links.api_url')
       if [[ "${exportStatus[0]}" == "finished" ]]; then
         echo " Done ${exportStatus[1]}"
         local fileName
@@ -323,8 +323,27 @@ function migrateProject() {
         importProject "${project}" "${fileName}"
         break
       fi
-      echo -n "."
-      sleep 5
+      if [[ "${exportStatus[0]}" == "none" ]]; then
+        echo -n " None"
+        break
+      fi
+      if [[ "${exportStatus[0]}" == "queued" ]]; then
+        echo -n "."
+        sleep 5
+        continue
+      fi
+      if [[ "${exportStatus[0]}" == "started" ]]; then
+        echo -n "."
+        sleep 5
+        continue
+      fi
+      if [[ "${exportStatus[0]}" == "regeneration_in_progress" ]]; then
+        echo -n "."
+        sleep 5
+        continue
+      fi
+      echo ${exportStatus[0]}
+      break
     done
   fi
 }
@@ -335,14 +354,14 @@ function isArchived() {
   projectEncoded=$(urlencode "${project}")
   local projectUrl="${baseUrlSourceGitlabApi}/projects/${projectEncoded}"
   local archived
-  archived=$(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${projectUrl}" | jq -r '.archived')
+  archived=$(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${projectUrl}" | jq -r '.archived')
   echo "$archived"
 }
 
 function downloadFile () {
   local downloadUrl=$1
   local tempPath="tmp.tar.gz"
-  curl "${CURL_PARAMS}" -sS -o "$tempPath" --header "$authHeaderSourceGitlab" "$downloadUrl"
+  curl ${CURL_PARAMS} -sS -o "$tempPath" --header "$authHeaderSourceGitlab" "$downloadUrl"
   echo "$tempPath"
 }
 
@@ -358,7 +377,7 @@ function importProject () {
   local projectNamespace=$(dirname "${projectPath}")
 
   local importResponse importStatus importMessage
-  importResponse=$(curl "${CURL_PARAMS}" -sS -w "\n%{http_code}\n" -X POST --header "${authHeaderTargetGitlab}" --form "path=${projectName}" --form "namespace=${projectNamespace}" --form "file=@${fileName}" "${importUrl}")
+  importResponse=$(curl ${CURL_PARAMS} -sS -w "\n%{http_code}\n" -X POST --header "${authHeaderTargetGitlab}" --form "path=${projectName}" --form "namespace=${projectNamespace}" --form "file=@${fileName}" "${importUrl}")
   { IFS= read -r importMessage && IFS= read -r importStatus; } <<< "${importResponse}"
 
   if [[ "${importStatus}" != "201" ]]; then
@@ -371,10 +390,18 @@ function importProject () {
   # https://docs.gitlab.com/ee/api/project_import_export.html#import-status
   local importStatusUrl="${baseUrlTargetGitlabApi}/projects/${projectPathEncoded}/import"
   while true; do
-    importStatus=$(curl "${CURL_PARAMS}" -sS --header "${authHeaderTargetGitlab}" "${importStatusUrl}" | jq -r '.import_status')
+    importStatus=$(curl ${CURL_PARAMS} -sS --header "${authHeaderTargetGitlab}" "${importStatusUrl}" | jq -r '.import_status')
     if [[ "${importStatus}" == "finished" ]]; then
       echo -n " Done"
       break
+    fi
+    if [[ "${importStatus}" == "none" ]]; then
+      echo -n " None"
+      break
+    fi
+    if [[ "${importStatus}" == "failed" ]]; then
+      echo -n " Failed to import the project"
+      exit 1
     fi
     echo -n "."
     sleep 5
@@ -389,7 +416,7 @@ function isTargetProjectExists () {
     local projectPathEncoded
     projectPathEncoded=$(urlencode "${projectPath}")
 
-    projectResponse=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${baseUrlTargetGitlabApi}/projects/${projectPathEncoded}")
+    projectResponse=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${baseUrlTargetGitlabApi}/projects/${projectPathEncoded}")
     if [[ "${projectResponse}" == "200" ]]; then
         return 0
     fi
@@ -410,7 +437,7 @@ function migrateVariables ()  {
   local variableUrlSourceGitlab="${baseUrlSourceGitlabApi}/${type}/${entityEncoded}/variables?per_page=100"
   local variableUrlTargetGitlab="${baseUrlTargetGitlabApi}/${type}/${entityEncodedTargetGitlab}/variables"
 
-  local response=$(curl "${CURL_PARAMS}" -sS -w "\n%{http_code}" --header "${authHeaderSourceGitlab}" "${variableUrlSourceGitlab}")
+  local response=$(curl ${CURL_PARAMS} -sS -w "\n%{http_code}" --header "${authHeaderSourceGitlab}" "${variableUrlSourceGitlab}")
   processCurlHttpResponse "$response"
   if [[ "${httpResponse['status']}" == "403" ]]; then
     echo "Skipping variables as CI/CD pipelines are disabled"
@@ -424,13 +451,13 @@ function migrateVariables ()  {
     local variable
     for variable in "${variables[@]}"; do
     local varKey=$(jq -r '.key' <<< "${variable}")
-    local status=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${variableUrlTargetGitlab}/${varKey}")
+    local status=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${variableUrlTargetGitlab}/${varKey}")
     if [[ "$status" == "200" ]]; then
       echo -n -e "Skipping already existing variable '${varKey}'. "
       continue
     else
       local importStatus
-      importStatus=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"$variable" "${variableUrlTargetGitlab}")
+      importStatus=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"$variable" "${variableUrlTargetGitlab}")
       if [[ "$importStatus" != "201" ]]; then
         echo "Error creating variable. Got status code $importStatus"
         exit 1
@@ -468,11 +495,11 @@ function migrateHooks () {
   local projectHooksUrl="${baseUrlSourceGitlabApi}/projects/${projectEncoded}/hooks?per_page=100"
   local projectHookUrlTargetGitlab="${baseUrlTargetGitlabApi}/projects/${projectEncodedTargetGitlab}/hooks"
   local -a hooks
-  mapfile -t hooks < <(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${projectHooksUrl}" | jq -rc '.[]')
+  mapfile -t hooks < <(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${projectHooksUrl}" | jq -rc '.[]')
   local hook
   for hook in "${hooks[@]}"; do
     local status
-    status=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"$hook" "${projectHookUrlTargetGitlab}")
+    status=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"$hook" "${projectHookUrlTargetGitlab}")
      if [[ "$status" != "201" ]]; then
       echo "Error creating project hooks. Got status code $status"
       exit 1
@@ -497,18 +524,18 @@ function migrateBadges ()  {
   local badgesUrlTargetGitlab="${baseUrlTargetGitlabApi}/${type}/${entityEncodedTargetGitlab}/badges"
 
   local -a badges
-  mapfile -t badges < <(curl "${CURL_PARAMS}" -sS --header "${authHeaderSourceGitlab}" "${badgesUrlSourceGitlab}" | jq -rc '.[] | del(.id, .rendered_link_url, .rendered_image_url, .kind)')
+  mapfile -t badges < <(curl ${CURL_PARAMS} -sS --header "${authHeaderSourceGitlab}" "${badgesUrlSourceGitlab}" | jq -rc '.[] | del(.id, .rendered_link_url, .rendered_image_url, .kind)')
   #echo "${badges[@]}"
   local badge
   for badge in "${badges[@]}"; do
     local badgeId=$(jq -r '.id' <<< "${badge}")
-    local status=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${badgesUrlTargetGitlab}/${badgeId}")
+    local status=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" --header "${authHeaderTargetGitlab}" "${badgesUrlTargetGitlab}/${badgeId}")
     if [[ "$status" == "200" ]]; then
       echo -n -e "Skipping already existing badge '${badgeId}'. "
       continue
     fi
     local importStatus
-    importStatus=$(curl "${CURL_PARAMS}" -sS -o /dev/null -w "%{http_code}" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"$badge" "${badgesUrlTargetGitlab}")
+    importStatus=$(curl ${CURL_PARAMS} -sS -o /dev/null -w "%{http_code}" -X POST --header "${authHeaderTargetGitlab}" --header "Content-Type: application/json" -d ''"$badge" "${badgesUrlTargetGitlab}")
     if [[ "${importStatus}" != "201" ]]; then
       echo "Error creating badge. Got status code ${importStatus}"
       exit 1
