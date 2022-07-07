@@ -81,7 +81,7 @@ function getObjects() {
   local headerUrl
   local pages
   headerUrl=$(curl ${CURL_PARAMS} -sS --head --header "${authHeaderSourceGitlab}" "${groupProjectsUrl}${type}")
-  pages=$(grep -oP '(?<=x-total-pages: ).*' <<< "${headerUrl}" | tr -d '\r')
+  pages=$(grep -ioP '(?<=x-total-pages: ).*' <<< "${headerUrl}" | tr -d '\r')
 
   for ((i=1; i<="${pages}"; i++)); do
     local -a objects
