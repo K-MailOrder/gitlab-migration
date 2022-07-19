@@ -48,18 +48,23 @@ fi
 #MIGRATE_PROJECT_VARIABLES="no"
 #MIGRATE_BADGES="no"
 #MIGRATE_HOOKS="no"
-CURL_PARAMS=""
+CURL_PARAMS="--raw"
 
-unset -v sourceGitlabPrivateAccessToken targetGitlabPrivateAccessToken
-{ IFS=$'\n\r' read -r sourceGitlabPrivateAccessToken && IFS=$'\n\r' read -r targetGitlabPrivateAccessToken; } < .secrets
+# only read from .secrets if env vars not existing
+if [ -z ${SOURCE_ACCESS_TOKEN+x} ] || [ -z ${TARGET_ACCESS_TOKEN+x} ]; then
+  echo "Reset GitLab access tokens, attempting to read from .secrets file"
+  unset -v SOURCE_ACCESS_TOKEN TARGET_ACCESS_TOKEN
+  # make sure you .secrets file has new line added at the end using LF only
+  { IFS=$'\n' read -r SOURCE_ACCESS_TOKEN && IFS=$'\n' read -r TARGET_ACCESS_TOKEN; } < .secrets
+fi
 
 dryRun=false
 
 baseUrlSourceGitlabApi="https://${SOURCE_GITLAB}/api/v4"
-authHeaderSourceGitlab="PRIVATE-TOKEN: ${sourceGitlabPrivateAccessToken}"
+authHeaderSourceGitlab="PRIVATE-TOKEN: ${SOURCE_ACCESS_TOKEN}"
 baseUrlTargetGitlabApi="https://${TARGET_GITLAB}/api/v4"
 baseUrlTargetGitlab="https://${TARGET_GITLAB}"
-authHeaderTargetGitlab="PRIVATE-TOKEN: ${targetGitlabPrivateAccessToken}"
+authHeaderTargetGitlab="PRIVATE-TOKEN: ${TARGET_ACCESS_TOKEN}"
 
 
 function urlencode() {
