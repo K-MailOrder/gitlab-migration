@@ -48,6 +48,7 @@ fi
 #MIGRATE_PROJECT_VARIABLES="no"
 #MIGRATE_BADGES="no"
 #MIGRATE_HOOKS="no"
+#PROJECT_FILTER="^prefix"
 CURL_PARAMS=""
 
 unset -v sourceGitlabPrivateAccessToken targetGitlabPrivateAccessToken
@@ -131,9 +132,11 @@ function migrateGroup() {
   # them here, making sure that the prefix matches the source path.
   for project in "${allProjects[@]}"; do
     if [[ "${project}" =~ ^${SOURCE_PATH} ]]; then
-      allProjectsFiltered+=(${project})
+      if [[ -z "${PROJECT_FILTER}" ]] || [[ "${project}" =~ ${PROJECT_FILTER} ]]; then
+        allProjectsFiltered+=(${project})
+      fi
     else
-      echo "Skipping project outside group: ${project}"
+      echo "Skipping project outside group or filter: ${project}"
     fi
   done
 
